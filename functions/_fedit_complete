@@ -1,5 +1,5 @@
 # adds command completion functionality for the function file names to the edit function
-_edit-function_complete() {
+_fedit_complete() {
     local user_input="${COMP_WORDS[1]}"
     local path_base=~/functions
     local files=()
@@ -9,4 +9,4 @@ _edit-function_complete() {
 
     COMPREPLY=("${files[@]}")
 }
-complete -F _edit-function_complete edit-function
+complete -F _fedit_complete fedit
