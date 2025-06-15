@@ -1,3 +1,16 @@
+# Function: set-display
+# Purpose: Adjusts display settings (gamma, brightness, night/day mode) using xrandr.
+# Usage: set-display [OPTIONS]
+# Options:
+#   -n      Apply "night mode" gamma (.9:.9:.7) to all connected displays
+#   -d      Apply "day mode" gamma (.9:.9:.9) to all connected displays
+#   -g <value>  Set custom gamma value (e.g., "0.8:0.8:0.8") for all displays.
+#   -b <value>  Set custom brightness value (0.1-1.0) for all displays
+# Notes:
+#   - If no options are provided, defaults to brightness=0.9 and gamma=0.9:0.9:0.9
+#   - If only 1 gamma value is provided, that value will be used for all 3 gamma values
+#   - Invalid arguments or missing values will trigger error messages and exit with code 1
+
 set-display() {
     source ~/.bashrc_sources/set-display.conf
     local OPTIND=1
