@@ -1,9 +1,22 @@
+# Function: show-color
+# Purpose: Displays color samples using various color formats (HEX, 256-color, ANSI, SGR).
+# Usage: show-color [OPTIONS]
+# Options:
+#   -h <HEX>        Display a true color using HEX format (e.g., -h #FF0000)
+#   -2 <CODE>       Display a 256-color code (0–255)
+#   -s <CODE>       Display an 8-color code (valid ranges: Foreground 30–37 and 90–97, Background 40–47 and 100–107)
+# Notes:
+#   - The -2 and -s flags support the 'all' option
+#   - The all option is not available for -h because it would result in over 16 million colors.
+#   - Invalid arguments or out-of-range codes will trigger error messages and exit with code 1.
+#   - If no options are provided, displays basic usage information and exits with code 1.
+
 show-color() {
     local OPTIND=1 opt hex code r g b
 
-    while getopts ":h:2:a:s:" opt; do
+    while getopts ":h:2:s:" opt; do
         case "$opt" in
-            h) # hex
+            h) # hex 24-bit Truecolor
                 hex="${OPTARG#"#"}"
                 if [[ ! "$hex" =~ ^[0-9A-Fa-f]{6}$ ]]; then
                     echo "Invalid hex color: $OPTARG"
@@ -23,7 +36,6 @@ show-color() {
                     return 1
                 elif [[ $code == "all" ]]; then
                     for i in {0..255}; do
-# this doesn't display cleanly                       echo -en "\e[48;5;${i}m ${i} \e[0m "
                         printf "\e[48;5;%sm%3s \e[0m" "$i" "$i"
                         (( (i + 1) % 16 == 0 )) && echo
                     done
@@ -32,21 +44,7 @@ show-color() {
                 fi
                 return 0
                 ;;
-            a) # ANSI
-                code="$OPTARG"
-                if [[ $code -lt 0 || $code -gt 15 ]]; then
-                    echo "ANSI color code must be 0–15"
-                    return 1
-                elif [[ $code == "all" ]]; then
-                    for i in {0..15}; do
-                        printf "\e[48;5;%sm%3s \e[0m" "$i" "$i"
-                        (( (i +1) % 8 == 0 )) && echo
-                    done
-                else
-                    echo -e "ANSI color code $code -> \e[48;5;${code}m     \e[0m"
-                fi
-                ;;
-            s) # 
+            s) # Standard 8-color
                 code="$OPTARG"
                 if [[ ( $code -ge 30 && $code -le 37 ) ]]; then
                     echo -e "Normal Foreground Color : \e[${code}m${code}"
