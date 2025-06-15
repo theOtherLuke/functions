@@ -1,0 +1,5 @@
+_edit() {
+    file="$1"
+    path=~/functions/"$file"
+    nano "$path" && source "$path"
+}

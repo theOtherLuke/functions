@@ -1,0 +1,30 @@
+set-ps1() {
+    # colors
+    PS1_RESET="\[\e[0m\]"
+    PS1_FG="\[\e[38;5;15m\]"
+    PS1_UFG="\[\e[38;5;39m\]"
+    PS1_HFG="\[\e[38;5;165m\]"
+    PS1_SFG="\[\e[38;5;190m\]"
+    PS1_BG1="\[\e[48;5;19m\]"
+    PS1_BG2="\[\e[48;5;16m\]"
+    PS1_RED="${BG2}\[\e[1;91m\]"
+    PS1_GREEN="${BG2}\[\e[38;5;46m\]"
+    local STATUS="$?"
+    # Line 1: username@hostname with BG1
+    local LINE1="${PS1_BG1}${PS1_UFG} \u${PS1_SFG}@${PS1_HFG}\h ${PS1_RESET}"
+
+    # Line 2: working directory + exit code + prompt character
+    local DIR="\w"
+    local PROMPT_CHAR="❯"
+
+    if [ "$STATUS" -eq 0 ]; then
+        local STATUS_COLOR="${PS1_GREEN}"
+        local STATUS_ITEM="👽" # alien
+    else
+        local STATUS_COLOR="${PS1_RED}"
+        local STATUS_ITEM="🛑" # stopsign
+    fi
+
+    # Combine both lines
+    PS1="${LINE1}\n${PS1_BG2}${PS1_FG} ${DIR} ${STATUS_COLOR}[${STATUS}] ${STATUS_ITEM} ❯ ${PS1_RESET}"
+}

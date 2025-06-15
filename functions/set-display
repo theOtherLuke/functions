@@ -1,0 +1,36 @@
+set-display() {
+    source ~/.bashrc_sources/set-display.conf
+    local OPTIND=1
+    while getopts "g:b:nd" opt; do
+        while read display; do
+            case "$opt" in
+                n)
+                    xrandr --output "$display" --gamma .9:.9:.7
+                    ;;
+                d)
+                    xrandr --output "$display" --gamma .9:.9:.9
+                    ;;
+                g)
+                    if [[ ! -z $OPTARG ]]; then
+                        xrandr --output "$display" --gamma $OPTARG
+                    else
+                        echo -e "\e[1;31mInvalid argument: $OPTARG"
+                        return 1
+                    fi
+                    ;;
+                b)
+                    if [[ ! -z $OPTARG ]]; then
+                        xrandr --output "$display" --brightness $OPTARG
+                    else
+                        echo -e "\e[1;31mInvalid argument: $OPTARG"
+                        return 1
+                    fi
+                    ;;
+                *)
+                    echo -e "\e[1;31mInvalid argument: -$OPTARG"
+                    return 1 ;;
+            esac
+        done < <(xrandr | grep " connected" | cut -d ' ' -f 1)
+    done
+    return 0
+}

@@ -1,0 +1,101 @@
+show-color() {
+    local OPTIND=1 opt hex code r g b
+
+    while getopts ":h:2:a:s:" opt; do
+        case "$opt" in
+            h) # hex
+                hex="${OPTARG#"#"}"
+                if [[ ! "$hex" =~ ^[0-9A-Fa-f]{6}$ ]]; then
+                    echo "Invalid hex color: $OPTARG"
+                    return 1
+                fi
+                r=$((16#${hex:0:2}))
+                g=$((16#${hex:2:2}))
+                b=$((16#${hex:4:2}))
+                echo -e "TrueColor RGB($r,$g,$b) HEX #$hex -> \e[48;2;${r};${g};${b}m     \e[0m"
+                return 0
+                ;;
+            2) # 256-color
+                code="$OPTARG"
+
+                if [[ $code -lt 0 || $code -gt 255 ]]; then
+                    echo "256-color code must be 0–255"
+                    return 1
+                elif [[ $code == "all" ]]; then
+                    for i in {0..255}; do
+# this doesn't display cleanly                       echo -en "\e[48;5;${i}m ${i} \e[0m "
+                        printf "\e[48;5;%sm%3s \e[0m" "$i" "$i"
+                        (( (i + 1) % 16 == 0 )) && echo
+                    done
+                else
+                    echo -e "256-color code $code -> \e[48;5;${code}m     \e[0m"
+                fi
+                return 0
+                ;;
+            a) # ANSI
+                code="$OPTARG"
+                if [[ $code -lt 0 || $code -gt 15 ]]; then
+                    echo "ANSI color code must be 0–15"
+                    return 1
+                elif [[ $code == "all" ]]; then
+                    for i in {0..15}; do
+                        printf "\e[48;5;%sm%3s \e[0m" "$i" "$i"
+                        (( (i +1) % 8 == 0 )) && echo
+                    done
+                else
+                    echo -e "ANSI color code $code -> \e[48;5;${code}m     \e[0m"
+                fi
+                ;;
+            s) # 
+                code="$OPTARG"
+                if [[ ( $code -ge 30 && $code -le 37 ) ]]; then
+                    echo -e "Normal Foreground Color : \e[${code}m${code}"
+                elif [[ ( $code -ge 90 && $code -le 97 ) ]]; then
+                    echo -e "Bright Foreground Color : \e[${code}m${code}"
+                elif [[ ( $code -ge 40 && $code -le 47 ) ]]; then
+                    echo -e "Normal Background Color : \e[${code}m ${code} \e[0m"
+                elif [[ ( $code -ge 100 && $code -le 107 ) ]]; then
+                    echo -e "Bright Background Color : \e[${code}m ${code} \e[0m"
+                elif [[ $code == "all" ]]; then
+                    echo "Normal Foreground Colors (30–37):"
+                    for i in {30..37}; do
+                        echo -en "\e[${i}m ${i} \e[0m  "
+                    done
+                    echo -e "\n"
+
+                    echo "Bright Foreground Colors (90–97):"
+                    for i in {90..97}; do
+                        echo -en "\e[${i}m ${i} \e[0m  "
+                    done
+                    echo -e "\n"
+
+                    echo "Normal Background Colors (40–47):"
+                    for i in {40..47}; do
+                        echo -en "\e[${i}m ${i} \e[0m  "
+                    done
+                    echo -e "\n"
+
+                    echo "Bright Background Colors (100–107):"
+                    for i in {100..107}; do
+                        echo -en "\e[${i}m ${i} \e[0m  "
+                    done
+                    echo -e "\n"
+                else
+                    echo "SGR color code must be one of 30-37, 90-97, 40-47 or 100-107"
+                    return 1
+                fi
+                return 0
+                ;;
+            *)
+                echo "Unknown option: -$OPTARG"
+                return 1
+                ;;
+            :)
+                echo "Option -$OPTARG requires an argument."
+                return 1
+                ;;
+        esac
+    done
+    echo "Usage: color_sample -h HEX | -2 CODE | -a CODE"
+    return 1
+}

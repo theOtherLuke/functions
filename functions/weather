@@ -1,0 +1,21 @@
+weather() {
+    source ~/functions/weather.conf
+    local OPTIND opt
+    local LOCATION="/$loc"
+    local SCALE="$scale"
+    while getopts "l:s:" opt; do
+        case "$opt" in
+            l) LOCATION="/$OPTARG" ;;
+            s) case "$OPTARG" in
+                    c) SCALE="?m" ;;
+                    f) SCALE="?u" ;;
+                    *) echo -e "\e[38;5;160mUnknown argument: $OPTARG\e[0m"
+                        return 1 ;;
+                esac
+                ;;
+            *) echo -e "\e[38;5;160mUnknown argument: $opt\e[0m"
+                return 1 ;;
+        esac
+    done
+    curl wttr.in"$LOCATION""$SCALE"
+}
