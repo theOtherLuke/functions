@@ -9,4 +9,4 @@ _edit-function_complete() {
 
     COMPREPLY=("${files[@]}")
 }
-complete -F _edit_complete edit
+complete -F _edit-function_complete edit
