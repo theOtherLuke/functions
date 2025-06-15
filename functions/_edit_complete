@@ -1,5 +1,5 @@
 # adds command completion functionality for the function file names to the edit function
-_edit_complete() {
+_edit-function_complete() {
     local user_input="${COMP_WORDS[1]}"
     local path_base=~/functions
     local files=()
