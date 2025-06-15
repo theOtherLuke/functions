@@ -1,6 +1,6 @@
 # function to quickly open a file in the ~/functions/ directory for editing.
 # Replace nano with your editor of choice
-edit-function() {
+fedit() {
     file="$1"
     path=~/functions/"$file"
     nano "$path" && source "$path"
