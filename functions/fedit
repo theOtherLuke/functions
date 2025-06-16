@@ -5,3 +5,15 @@ fedit() {
     path=~/functions/"$file"
     nano "$path" && source "$path"
 }
+
+_fedit_complete() {
+    local user_input="${COMP_WORDS[1]}"
+    local path_base=~/functions
+    local files=()
+    for file in "$path_base"/"$user_input"*; do
+        [[ -f $file ]] && files+=("$(basename "$file")")
+    done
+
+    COMPREPLY=("${files[@]}")
+}
+complete -F _fedit_complete fedit
