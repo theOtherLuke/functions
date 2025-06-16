@@ -1,4 +1,5 @@
 set-ps1() {
+    local STATUS="$?"
     # colors
     PS1_RESET="\[\e[0m\]"
     PS1_FG="\[\e[38;5;15m\]"
@@ -9,7 +10,6 @@ set-ps1() {
     PS1_BG2="\[\e[48;5;16m\]"
     PS1_RED="${BG2}\[\e[1;91m\]"
     PS1_GREEN="${BG2}\[\e[38;5;46m\]"
-    local STATUS="$?"
     # Line 1: username@hostname with BG1
     local LINE1="${PS1_BG1}${PS1_UFG} \u${PS1_SFG}@${PS1_HFG}\h ${PS1_RESET}"
 
