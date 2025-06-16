@@ -1,0 +1,277 @@
+[[ -f ~/.config/statusbar.conf ]] && source ~/.config/statusbar.conf
+[[ -f ~/.config/statusbar.conf ]] && config_mtime=$(stat -c %Y ~/.config/statusbar.conf) # we monitor modify time to reload settings live
+
+statusbar() {
+  local cmd="$1"; shift
+  case "$cmd" in
+    start)
+      if (( _statusbar_isrunnning )); then
+        echo "Statusbar is already running"
+        return 1
+      else
+        _statusbar_isrunning=1
+        echo -ne "\e7\e[2;$(tput lines)r\e8"
+        _start_watchers 2>/dev/null
+        _statusbar_start_loop 2>/dev/null
+      fi
+      ;;
+    stop)
+      echo -ne "\e7\e[r\e8"
+      _statusbar_stop ;;
+    toggle)
+      if _statusbar_running; then _statusbar_stop; else _statusbar_start_loop; fi
+      ;;
+    config)
+      while getopts ":mc" opt; do
+        case $opt in
+          m) _statusbar_toggle_clock_mode ;;
+          c) _statusbar_toggle_color ;;
+          *) return 1 ;;
+        esac
+      done
+      ;;
+    *) echo "Usage: statusbar {start|stop|toggle|config [-m] [-c]}" ;;
+  esac
+}
+
+# shared cache files
+cpu_file="/tmp/statusbar-cpu.$$"
+ram_file="/tmp/statusbar-ram.$$"
+net_file="/tmp/statusbar-net.$$"
+touch $cpu_file
+touch $ram_file
+touch $net_file
+notify_file=~/.cache/statusbar-notify
+
+# Internal state
+_statusbar_isrunning=0
+_statusbar_clock_mode="24"
+_statusbar_use_color=1
+_statusbar_pid_file="/tmp/.statusbar_pid.$(tty | sed 's:/:_:' | tr -cd '[:alnum:]_.')"
+_statusbar_cols_file="/tmp/.statusbar_cols.$(tty | sed 's:/:_:' | tr -cd '[:alnum:]_.')"
+
+# Cache for CPU
+_cpu_last_total=0
+_cpu_last_idle=0
+_statusbar_userhost=""
+_statusbar_last_userhost_check=0
+
+_statusbar_toggle_clock_mode() {
+  _statusbar_clock_mode=$([[ "$_statusbar_clock_mode" == "24" ]] && echo "12" || echo "24")
+}
+
+_statusbar_toggle_color() {
+  _statusbar_use_color=$((1 - _statusbar_use_color))
+}
+
+_statusbar_running() {
+  [[ -f "$_statusbar_pid_file" ]] && kill -0 "$(cat "$_statusbar_pid_file")" 2>/dev/null
+}
+
+_statusbar_start_loop() {
+  _statusbar_cleanup_orphans
+  echo "$(tput cols)" > "$_statusbar_cols_file"
+  _userhost_get
+  _statusbar_loop &
+  echo $! > "$_statusbar_pid_file"
+  disown
+}
+
+_statusbar_start() {
+    _statusbar_loop &
+    export STATUSBAR_PID=$!
+}
+
+_statusbar_stop() {
+  [[ -f "$_statusbar_pid_file" ]] && kill "$(cat "$_statusbar_pid_file")" 2>/dev/null
+  rm -f "$_statusbar_pid_file" "$_statusbar_cols_file"
+  if [[ -n "$STATUSBAR_PID" && -d "/proc/$STATUSBAR_PID" ]]; then
+    kill "$STATUSBAR_PID" 2>/dev/null
+    wait "$STATUSBAR_PID" 2>/dev/null
+  fi
+  kill "$cpu_pid" "$ram_pid" "$net_pid" 2>/dev/null
+  rm -f "$cpu_file" "$ram_file" "$net_file"
+  _statusbar_cleanup_orphans
+}
+
+trap '_statusbar_stop' EXIT INT TERM HUP
+
+_statusbar_cleanup_orphans() {
+  # Kill old background loops tied to stale TTYs
+  for pidfile in /tmp/.statusbar_pid.*; do
+    [[ -f "$pidfile" ]] || continue
+    local pid=$(cat "$pidfile")
+    if ! kill -0 "$pid" 2>/dev/null; then
+      rm -f "$pidfile"
+    fi
+  done
+}
+
+_statusbar_update_size() {
+  tput cols > "$_statusbar_cols_file"
+  echo -ne "\e7\e[2;$(tput lines)r\e8"
+}
+
+trap _statusbar_update_size SIGWINCH
+
+_userhost_get() {
+  _statusbar_userhost="${COLOR_BG}${COLOR_USERNAME}${USER}${RESET}${COLOR_BG}@${COLOR_HOSTNAME}$(hostname)${RESET}${COLOR_BG}"
+  _statusbar_last_userhost_check=$(date +%s)
+}
+
+_clock_get() {
+  if [[ "$_statusbar_clock_mode" == "12" ]]; then
+    echo -ne "${COLOR_CLOCK}$(date +"%I:%M:%S %p")${RESET}${COLOR_BG}"
+  else
+    echo -ne "${COLOR_CLOCK}$(date +"%H:%M:%S")${RESET}${COLOR_BG}"
+  fi
+}
+
+_get_active_interface() {
+  for iface in /sys/class/net/*; do
+    iface_name="${iface##*/}"
+
+    # Skip loopback and virtual interfaces
+    [[ "$iface_name" == lo* || "$iface_name" == docker* || "$iface_name" == veth* || "$iface_name" == br-* ]] && continue
+
+    # Only accept known physical interface prefixes
+    [[ "$iface_name" =~ ^(eth|enp|wlp)[0-9a-z]*$ ]] || continue
+
+    if [[ "$(cat "$iface/operstate")" == "up" ]]; then
+      echo "$iface_name"
+      return 0
+    fi
+  done
+  return 1
+}
+
+_network_get() {
+  local interface="$(_get_active_interface)"
+  [[ -z "$interface" ]] && echo "Net: N/A" && return
+
+  local rx1 tx1 rx2 tx2 delta_rx delta_tx interval=1
+
+  read -r rx1 tx1 < <(awk -v iface="$interface" '$0 ~ iface":" {print $2, $10}' /proc/net/dev)
+  sleep "$interval"
+  read -r rx2 tx2 < <(awk -v iface="$interface" '$0 ~ iface":" {print $2, $10}' /proc/net/dev)
+
+  delta_rx=$((rx2 - rx1))
+  delta_tx=$((tx2 - tx1))
+
+  local rx_kbps tx_kbps
+  rx_kbps=$((delta_rx / 1024))
+  tx_kbps=$((delta_tx / 1024))
+
+  echo -ne "$interface: ${COLOR_RX}↓${rx_kbps}${RESET}${COLOR_BG}KB/s ${COLOR_TX}↑${tx_kbps}${RESET}${COLOR_BG}KB/s"  
+}
+
+_notification_get() {
+  [[ -f "$notify_file" ]] && head -n 1 "$notify_file" || echo ""
+}
+
+_statusbar_colorize() {
+  local pct="$1"
+  local label="$2"
+  pct=$(echo "$pct" | tr -d '[:space:]')
+  if (( _statusbar_use_color )); then
+    if (( pct >= 90 )); then echo -ne "$label:\e[91m ${pct}%\e[0m${COLOR_BG}"
+    elif (( pct >= 70 )); then echo -ne "$label:\e[93m ${pct}%\e[0m${COLOR_BG}"
+    else echo -ne "$label:\e[92m ${pct}%\e[0m${COLOR_BG}"
+    fi
+  else
+    echo -ne "$label: ${pct}%"
+  fi
+}
+
+## watcher functions
+_cpu_watcher() {
+  while true; do
+    read -r _ user nice system idle iowait irq softirq steal _ < /proc/stat
+    total1=$((user + nice + system + idle + iowait + irq + softirq + steal))
+    idle1=$((idle + iowait))
+    sleep 1
+    read -r _ user2 nice2 system2 idle2 iowait2 irq2 softirq2 steal2 _ < /proc/stat
+    total2=$((user2 + nice2 + system2 + idle2 + iowait2 + irq2 + softirq2 + steal2))
+    idle2=$((idle2 + iowait2))
+
+    total_diff=$((total2 - total1))
+    idle_diff=$((idle2 - idle1))
+    usage=$(( (100 * (total_diff - idle_diff)) / total_diff ))
+    _statusbar_colorize "$usage" "CPU" > "$cpu_file"
+    sleep 1
+  done
+}
+
+_ram_watcher() {
+  while true; do
+      local total available mem_pct
+      read total available < <(free -m | awk '/^Mem:/ {print $2, $7}')
+      if [[ -n "$total" && -n "$available" && "$total" -gt 0 ]]; then
+        mem_pct=$(( ( (total - available) * 100 ) / total ))
+        _statusbar_colorize "$mem_pct" "RAM" > "$ram_file"
+      else
+        echo -n "RAM: N/A" > "$ram_file"
+      fi
+      sleep 2
+  done
+}
+
+_net_watcher() {
+  while true; do
+      local interface="$(_get_active_interface)"
+      [[ -z "$interface" ]] && echo "Net: N/A" && return
+      local rx1 tx1 rx2 tx2 delta_rx delta_tx interval=1
+      read -r rx1 tx1 < <(awk -v iface="$interface" '$0 ~ iface":" {print $2, $10}' /proc/net/dev)
+      sleep "$interval"
+      read -r rx2 tx2 < <(awk -v iface="$interface" '$0 ~ iface":" {print $2, $10}' /proc/net/dev)
+      delta_rx=$((rx2 - rx1))
+      delta_tx=$((tx2 - tx1))
+      local rx_kbps tx_kbps
+      rx_kbps=$((delta_rx / 1024))
+      tx_kbps=$((delta_tx / 1024))
+      echo -ne "$interface: ${COLOR_RX}↓${rx_kbps}${RESET}${COLOR_BG}KB/s ${COLOR_TX}↑${tx_kbps}${RESET}${COLOR_BG}KB/s" > "$net_file"
+      sleep 1
+  done
+}
+
+_start_watchers() {
+  _cpu_watcher &
+  cpu_pid=$!
+  _ram_watcher &
+  ram_pid=$!
+  _net_watcher &
+  net_pid=$!
+}
+
+## main loop
+_statusbar_loop() {
+  while true; do
+    new_mtime=$(stat -c %Y ~/.config/statusbar.conf)
+    if [[ $new_mtime -ne $config_mtime ]]; then
+      source ~/.config/statusbar.conf
+      config_mtime=$new_mtime
+    fi
+    local cols=$(< "$_statusbar_cols_file")
+    [[ -z "$cols" ]] && cols=$(tput cols) && echo $cols > "$_statusbar_cols_file"
+
+    local now=$(date +%s)
+    (( now - _statusbar_last_userhost_check >= 10 )) && _userhost_get
+
+    local notify="$(_notification_get)"
+    local clock=$(_clock_get)
+    local cpu=$(< "$cpu_file")
+    local ram=$(< "$ram_file")
+    local network=$(< "$net_file")
+    right="${notify:+$notify | }${network:+$network | }${cpu} | ${ram} | ${clock} "
+    local right_clean=$(echo -e "$right" | sed -E 's/\x1B\[[0-9;]*[mK]//g')
+    local left=" $_statusbar_userhost"
+    local left_clean=$(echo -e "$left" | sed -E 's/\x1B\[[0-9;]*[mK]//g')
+    local fill=$((cols - ${#left_clean} - ${#right_clean}))
+    (( fill < 1 )) && fill=1
+    local spacer=$(printf '%*s' "$fill")
+
+    echo -ne "\e7\e[1;1H${COLOR_BG}\e[2K${left}${COLOR_BG}${spacer}${right}${RESET}\e8"
+
+    sleep 1
+  done
+}
