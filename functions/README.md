@@ -4,7 +4,7 @@ I have only really tested any of these in bash, except for a *tiny* part of `set
 place the files in `~/functions`
 
 ---
-#### `fedit` and `_fedit_complete` - aka f(unction)edit
+#### `fedit` - aka f(unction)edit
 
 usage: `fedit <function>`
 
