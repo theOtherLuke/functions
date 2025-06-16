@@ -1,5 +1,5 @@
-[[ -f ~/.config/statusbar.conf ]] && source ~/.config/statusbar.conf
-[[ -f ~/.config/statusbar.conf ]] && config_mtime=$(stat -c %Y ~/.config/statusbar.conf) # we monitor modify time to reload settings live
+[[ -f ~/functions/statusbar.conf ]] && source ~/functions/statusbar.conf
+[[ -f ~/functions/statusbar.conf ]] && config_mtime=$(stat -c %Y ~/functions/statusbar.conf) # we monitor modify time to reload settings live
 
 statusbar() {
   local cmd="$1"; shift
@@ -246,9 +246,9 @@ _start_watchers() {
 ## main loop
 _statusbar_loop() {
   while true; do
-    new_mtime=$(stat -c %Y ~/.config/statusbar.conf)
+    new_mtime=$(stat -c %Y ~/functions/statusbar.conf)
     if [[ $new_mtime -ne $config_mtime ]]; then
-      source ~/.config/statusbar.conf
+      source ~/functions/statusbar.conf
       config_mtime=$new_mtime
     fi
     local cols=$(< "$_statusbar_cols_file")
