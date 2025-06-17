@@ -35,6 +35,6 @@ usage: `fedit <function>`
 ---
 #### `statusbar` and `statusbar.conf`
 
-`statusbar` is my most ambitious work since my nordvpn scripts. This creates a status bar at the top of the terminal window that shows username@hostname, network, cpu, and ram usage, and the current time. It also works in ssh and xtermjs. This one is still a bit rough and needs some cleanup, but it *mostly* works. I say mostly because I haven't quite gotten notifications working yet.
+`statusbar` is my most ambitious work since my nordvpn scripts. This creates a status bar at the top of the terminal window that shows username@hostname, network, cpu, and ram usage, and the current time. It also works in ssh and xtermjs. This one is still a bit rough and needs some cleanup, but it *mostly* works. I say mostly because I haven't quite gotten notifications working yet. I'm also not sure how to address the fact that this kills the ability to scroll back.
 
 `exit` hangs on the terminal emulator kitty when statusbar is running. Alacritty and xterm seem to be fine.
