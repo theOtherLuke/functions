@@ -8,7 +8,7 @@ place the files in `~/functions`
 
 usage: `fedit <function>`
 
-`fedit` is a quick way to edit any file in the `~/functions` directory regardless of what directory you are in. I have it setup to use nano. I've honestly just been too lazy to learn a different editor like vi(or its variants) or emacs. Just change the editor to that of your choice inside the `fedit` file. `fedit` also sources the freshly edited function file so you shouldn't have to reload your shell to make use of changes in the functions.
+`fedit` is a quick way to edit any file in the `~/functions` directory regardless of what directory you are in. I have it setup to use nano. I've honestly just been too lazy to learn a different editor like vi(or its variants) or emacs. Just change the editor to that of your choice inside the `fedit` file. You will need to reload your shell using `source .bashrc` or equivalent for your shell.
 
 `_fedit_complete` implements command completion for files in `~/functions` so you can use tab at the command line to complete.
 
