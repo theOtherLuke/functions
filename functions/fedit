@@ -3,7 +3,8 @@
 fedit() {
     file="$1"
     path=~/functions/"$file"
-    nano "$path" && source "$path"
+    nano "$path"
+    printf "Don't forget to reload your shell for the changes to take effect.\n\n"
 }
 
 _fedit_complete() {
