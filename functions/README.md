@@ -48,6 +48,9 @@ usage: `fedit <function>`
 
 `query-reset` resets the cursor position after a `query`.
 
+> [!NOTE]
+> `query` and `query-rest` must be in the script in which you wish to use them in order to work properly.
+
 example:
 ```bash
 # print a menu title
