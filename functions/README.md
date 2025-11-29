@@ -38,3 +38,51 @@ usage: `fedit <function>`
 `statusbar` is my most ambitious work since my nordvpn scripts. This creates a status bar at the top of the terminal window that shows username@hostname, network, cpu, and ram usage, and the current time. It also works in ssh and xtermjs. This one is still a bit rough and needs some cleanup, but it *mostly* works. I say mostly because I haven't quite gotten notifications working yet. I'm also not sure how to address the fact that this kills the ability to scroll back.
 
 `exit` hangs on the terminal emulator kitty when statusbar is running. Alacritty and xterm seem to be fine.
+
+---
+#### `menuitem` and `query`
+
+`menuitem` prints a menu item to the screen along with a selection index, character, or word.
+
+`query` basically an easily formatable read for user input.
+
+`query-reset` resets the cursor position after a `query`.
+
+example:
+```bash
+# print a menu title
+printf "\e[1;31m%s\e[0m" "=== MAIN MENU ==="
+
+# create menu items
+menuitem "1" "Enter new item"
+menuitem "2" "Remove an item"
+menuitem "3" "Save"
+menuitem "q" "Quit"
+
+# trap in a loop until a valid response is given
+while response=$(query "Make a selection : "); do # qeury the user for input
+    # ${var,,} = lowercase. this makes it case-insensitive and we just test against lowercase options
+    case in "${response,,}"
+        1) new-item;;
+        2) del-item;;
+        3) save-items;;
+        q) exit;;
+    esac
+    query-reset # reset the cursor
+done
+```
+
+example of `query()` using yes/no:
+```bash
+# ask the question/start the loop
+while answer=$(query "Do you approve? "); do
+    # test the lowercase of $answer
+    case "${answer,,}" in
+        y) echo "yes"; break;;
+        n) echo "no"; exit 1;;
+    esac
+    query-reset
+done
+```
+
+Both examples exclude invalid input automatically by simply not matching it.
