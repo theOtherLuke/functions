@@ -1,0 +1,17 @@
+# Simple query function using printf and read to facilitate
+# formating the query. Useful when combined with menuitem()
+# to create menus.
+query() {
+    message="$@"
+    printf "\e[s${c_cyan} %s ${c_reset}" "$message" >&2
+    read -r answer
+    printf "${answer}"
+    printf "\n" >&2
+}
+
+# Returns the cursor to the position where query() started
+# and clear the screen after the cursor as long as "\e[s"
+# hasn't been called again.
+query-reset() {
+    printf "\e[u\e[K"
+}
