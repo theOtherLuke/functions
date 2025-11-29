@@ -1,0 +1,8 @@
+# simple function to print out menu items
+menuitem() {
+    option_color=${c_cyan}
+    item_color=${c_blue}
+    option=$1
+    item=$2
+    printf "${option_color} %s) ${item_color}%s\n" "${option}" "${item}"
+}
