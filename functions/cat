@@ -1,0 +1,48 @@
+# This is an override function to use bat in place of cat. You can
+# still use cat by passing the -c flag. Any other flags will be passed
+# to bat or cat respectively.
+# eg- to mimic cat, but with syntax highlighting: `cat -pP <input>`
+
+# Requirements: bat
+# Install on debian/buntu: `sudo apt install bat`
+
+cat() {
+    local use_cat=false
+    local -a args=()
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --)  # End of options
+                shift
+                args+=("$@")
+                break
+                ;;
+            -*)  # Short flags, possibly combined
+                local flag="${1#-}"
+                local rest_flags=""
+                for ((i=0; i<${#flag}; i++)); do
+                    local ch="${flag:i:1}"
+                    if [[ $ch == "c" ]]; then
+                        use_cat=true
+                    else
+                        rest_flags+="$ch"
+                    fi
+                done
+                if [[ -n $rest_flags ]]; then
+                    args+=("-$rest_flags")
+                fi
+                shift
+                ;;
+            *)  # Positional argument
+                args+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    if $use_cat; then
+        command cat "${args[@]}"
+    else
+        batcat "${args[@]}"
+    fi
+}
