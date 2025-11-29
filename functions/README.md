@@ -44,7 +44,7 @@ usage: `fedit <function>`
 
 `menuitem` prints a menu item to the screen along with a selection index, character, or word.
 
-`query` basically an easily formatable read for user input.
+`query` basically an easily formatted read for user input.
 
 `query-reset` resets the cursor position after a `query`.
 
@@ -67,7 +67,7 @@ menuitem "3" "Save"
 menuitem "q" "Quit"
 
 # trap in a loop until a valid response is given
-while response=$(query "Make a selection : "); do # qeury the user for input
+while response=$(query "Make a selection : "); do # query the user for input
     # ${var,,} = lowercase. this makes it case-insensitive and we just test against lowercase options
     case in "${response,,}"
         1) new-item;;
@@ -79,11 +79,12 @@ while response=$(query "Make a selection : "); do # qeury the user for input
 done
 ```
 
-example of `query()` using yes/no:
+example of `query()` using yes/no with a default option:
 ```bash
 # ask the question/start the loop
-while answer=$(query "Do you approve? "); do
+while answer=$(query "Do you approve? [Y|n]"); do
     # test the lowercase of $answer
+    answer="${answer:-y}" # set to default "y" if nothing is entered
     case "${answer,,}" in
         y) echo "yes"; break;;
         n) echo "no"; exit 1;;
